@@ -4,13 +4,27 @@ import test_helper
 import thunderhead.rackspace
 import xml.dom.minidom as minidom
 
+def handleResponse(server):
+    server.send_response(204)
+
+def handleXMLResponse(server, xml, code=200):
+    server.send_response(code)
+    server.send_header('content-type', 'application/xml')
+    server.send_header('content-length', str(len(xml)))
+    server.end_headers()
+    server.wfile.write(xml)
+
 class TestRackspaceBoundConnection(test_helper.TestCase):
-    def setUp(self):
-        self.server = test_helper.StubServer.test({'get': lambda (server): server.send_response(201)})
+    def simpleServer(self):
+        self.server = test_helper.StubServer.test({'get': handleResponse, 'post': handleResponse})
+        self.commonConfig()
+
+    def commonConfig(self):
         self.pathPrefix = '/test-prefix'
         self.url = 'http://localhost:' + str(self.server.port) + self.pathPrefix
 
     def testEmptyRequest(self):
+        self.simpleServer()
         authHeader = 'SOME-AUTHORIZATION-TOKEN'
         specificPath = '/some-path/for-this'
         connection = thunderhead.rackspace.BoundConnection(
@@ -36,6 +50,7 @@ class TestRackspaceBoundConnection(test_helper.TestCase):
         self.assertFalse(headers.has_key('content-type'))
 
     def testPopulatedRequest(self):
+        self.simpleServer()
         node = minidom.parseString('<someNode>Some data</someNode>').documentElement
         connection = thunderhead.rackspace.BoundConnection(self.url, {})
         connection.request('POST', '/somenode/submission', node)
@@ -45,6 +60,36 @@ class TestRackspaceBoundConnection(test_helper.TestCase):
         # that the XML is intact server-side
         self.assertEqual(requestReceived['headers']['content-type'], 'application/xml')
         self.assertEqual(requestReceived['body'], node.toprettyxml())
+
+    def testPopulatedXMLResult(self):
+        xml = '<someNode>some content</someNode>'
+        self.server = test_helper.StubServer.test({
+            'get': lambda (server): handleXMLResponse(server, xml)
+        })
+        self.commonConfig()
+        connection = thunderhead.rackspace.BoundConnection(self.url, {})
+        (response, code) = connection.request('GET', '/any-path-will-do')
+        requestReceived = self.server.getRequestData()
+        self.server.finish(1)
+        # verify that the xml in the response is automatically converted to a DOM doc element
+        # (or something like it)
+        self.assertEqual(code, 200)
+        self.assertEqual(response.nodeName, 'someNode')
+
+    def testPopulatedXMLResultFault(self):
+        xml = '<cloudServersFault><message>Everything is awful</message><details>We all perish</details></cloudServersFault>'
+        self.server = test_helper.StubServer.test({
+                'get': lambda (server): handleXMLResponse(server, xml, 400)
+        })
+        self.commonConfig()
+        connection = thunderhead.rackspace.BoundConnection(self.url, {})
+        message, code, details = (None, None, None)
+        try:
+            (foo, bar) = connection.request('GET', '/any-path-will-do')
+        except thunderhead.rackspace.exceptions.CloudServersFaultException as expected:
+            message, code, details = expected.args
+        self.assertEqual((message, code, details), ('Everything is awful', 400, 'We all perish'))
+            
 
 if __name__ == '__main__':
     test_helper.main()

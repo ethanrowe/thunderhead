@@ -2,8 +2,10 @@
 import httplib
 from urlparse import urlparse
 from . import exceptions
+import xml.dom.minidom as minidom
 
 class BoundConnection(object):
+
     def __init__(self, url, headers):
         request = urlparse(url)
         self.scheme = request.scheme
@@ -32,7 +34,35 @@ class BoundConnection(object):
         if body:
             body = body.toprettyxml()
             mergedHeaders['Content-Type'] = 'application/xml'
-        return self.connection.request(method, self.pathPrefix + url, body, mergedHeaders)
+        self.connection.request(method, self.pathPrefix + url, body, mergedHeaders)
+        return self.handleResponse()
+
+    def handleResponse(self):
+        resp = self.connection.getresponse()
+        code = resp.status
+        length = int(resp.getheader('content-length', 0))
+        body = None
+        if length and resp.getheader('content-type', '') == 'application/xml':
+            body = minidom.parseString(resp.read(length)).documentElement
+        if code >= 400: self.handleFault(code, body)
+        return (body, code)
+
+    def handleFault(self, code, xml):
+        type = xml.nodeName if xml else ''
+        args = []
+        if type:
+            notes = dict([
+                (n.nodeName, n.firstChild.data) for n in xml.childNodes if n.nodeName in ('message', 'details')
+            ])
+            args.append( (notes.has_key('message') and notes['message']) or None )
+            args.append(code)
+            if notes.has_key('details'): args.append(notes['details'])
+        else:
+            args.extend([None, code])
+        exceptions.throw(type, *args)
+
+
+        
         
 class Authorization(object):
     baseURL = 'https://auth.api.rackspacecloud.com/v1.0'
