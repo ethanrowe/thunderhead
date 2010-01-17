@@ -48,7 +48,7 @@ class TestRackspaceAuthorization(test_helper.TestCase):
         server = test_helper.StubServer.test({'get': get})
         AuthorizationOverride.bindToTestServer(server)
         test = lambda: AuthorizationOverride('bah', 'blah')
-        self.assertRaises(thunderhead.rackspace.BadCredentialsException, test)
+        self.assertRaises(thunderhead.rackspace.exceptions.BadCredentialsException, test)
         server.finish(1)
 
 if __name__ == '__main__':

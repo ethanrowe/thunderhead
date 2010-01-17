@@ -3,8 +3,6 @@ import httplib
 from urlparse import urlparse
 from . import exceptions
 
-class BadCredentialsException(Exception): pass
-
 class BoundConnection(object):
     def __init__(self, url, headers):
         request = urlparse(url)
@@ -53,7 +51,7 @@ class Authorization(object):
     @classmethod
     def getAuthorization(self, name, key):
         response = self.performAuthRequest(name, key)
-        if response.status == 401: raise BadCredentialsException()
+        if response.status == 401: raise exceptions.BadCredentialsException()
         return response
 
     @classmethod
