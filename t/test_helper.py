@@ -1,8 +1,6 @@
 
-import sys, os, time, pickle
-import os.path
+import sys, os.path, time, pickle, BaseHTTPServer
 from unittest import *
-import BaseHTTPServer
 
 sys.path = [
     os.path.abspath(
@@ -10,7 +8,6 @@ sys.path = [
         ) ] + sys.path
 
 
-#class StubServer(threading.Thread):
 class StubServer(object):
     class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
         def generalHandler(self, type):
@@ -34,7 +31,6 @@ class StubServer(object):
         self.server.handlers = handlers or {}
         self.server.testStub = self
         self.port = self.server.server_port
-        #threading.Thread.__init__(self)
 
     def sendRequestData(self, request):
         info = {
@@ -75,8 +71,6 @@ class StubServer(object):
 
     def finish(self, timeout=5):
         os.waitpid(self.pid, os.WNOHANG)
-        # join once extra in case of blocking IO
-        # self.join(timeout)
 
 class Authenticator(StubServer):
     authToken = 'StandardAuthenticatorToken'
