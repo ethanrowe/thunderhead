@@ -35,6 +35,10 @@ class BoundConnection(object):
         if body:
             body = body.toxml()
             mergedHeaders['Content-Type'] = 'application/xml'
+        # stateful connections are tricky to manage, so for the time being,
+        # do the rather blunt close/reopen strategy here; improve later.
+        self.connection.close()
+        self.connection.connect()
         self.connection.request(method, self.pathPrefix + url, body, mergedHeaders)
         return self.handleResponse()
 

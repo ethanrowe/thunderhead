@@ -40,10 +40,9 @@ def getFlavors(conn, since=None):
         },
     )
 
+# timezones are a mess, so for now, we'll leave these as strings.
 def convertTimestamp(ts):
-    return datetime.datetime(
-        *(time.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')[0:6])
-    )
+    return str(ts)
 
 def getImages(conn, since=None):
     (images, code) = conn.request('GET', '/images/detail')
