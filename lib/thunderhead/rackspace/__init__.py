@@ -33,7 +33,7 @@ class BoundConnection(object):
     def request(self, method, url, body=None, headers={}):
         mergedHeaders = self.mergeHeaders(headers)
         if body:
-            body = body.toprettyxml()
+            body = body.toxml()
             mergedHeaders['Content-Type'] = 'application/xml'
         self.connection.request(method, self.pathPrefix + url, body, mergedHeaders)
         return self.handleResponse()

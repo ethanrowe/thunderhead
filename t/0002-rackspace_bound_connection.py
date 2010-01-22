@@ -59,7 +59,7 @@ class TestRackspaceBoundConnection(test_helper.TestCase):
         # verify that XML submitted upstream results in a Content-Type header and
         # that the XML is intact server-side
         self.assertEqual(requestReceived['headers']['content-type'], 'application/xml')
-        self.assertEqual(requestReceived['body'], node.toprettyxml())
+        self.assertEqual(requestReceived['body'], node.toxml())
 
     def testPopulatedXMLResult(self):
         xml = '<someNode>some content</someNode>'

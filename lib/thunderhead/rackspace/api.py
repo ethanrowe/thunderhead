@@ -10,6 +10,10 @@ def getServers(conn, since=None):
     result = [Server.fromXML(node) for node in nodes] if nodes else []
     return result
 
+def createServer(conn, server):
+    (created, code) = conn.request('POST', '/servers', server.toXML())
+    return Server.fromXML(created)
+
 def attributeHash(node, attrs):
     ident = lambda (x): x
     return dict([
@@ -58,7 +62,7 @@ def getImages(conn, since=None):
     )
 
 class Server(object):
-    simpleAttributes = ['name', 'status', 'hostId', 'metadata', 'publicIPs', 'privateIPs', 'files']
+    simpleAttributes = ['name', 'status', 'hostId', 'metadata', 'publicIPs', 'privateIPs', 'files', 'adminPass']
     integerAttributes = ['id', 'imageId', 'flavorId', 'progress', 'sharedIpGroupId']
     xmlAttributes = [
         'name',
@@ -69,6 +73,7 @@ class Server(object):
         'flavorId',
         'progress',
         'sharedIpGroupId',
+        'adminPass',
     ]
 
     def __init__(self, *args, **kwargs):

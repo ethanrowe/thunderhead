@@ -1,5 +1,6 @@
 
 import sys, os.path, time, pickle, BaseHTTPServer
+import xml.dom.minidom as minidom
 from unittest import *
 
 sys.path = [
@@ -40,6 +41,7 @@ class StubServer(object):
             'body': '' }
         length = request.headers.getheader('content-length')
         if length and int(length): info['body'] = request.rfile.read(int(length))
+        request.info = info
         pickle.Pickler(self.pipeOut).dump(info)
         self.pipeOut.flush()
 
@@ -132,11 +134,11 @@ class APIServer(StubServer):
                 if result:
                     func = getattr(self, action)
                     arg = result.groups()
-                    return self.xmlWrapper(handler, func(*arg))
-        return self.notFound()
+                    return self.xmlWrapper(handler, *func(*arg, request=handler))
+        return self.notFound(handler)
 
-    def xmlWrapper(self, handler, content):
-        handler.send_response(200)
+    def xmlWrapper(self, handler, content, *extra):
+        handler.send_response((extra and extra[0]) or 200)
         if content:
             handler.send_header('content-type', 'application/xml')
             handler.send_header('content-length', len(content))
@@ -151,8 +153,8 @@ class APIServer(StubServer):
         handler.end_headers()
 
     # XML samples taken from Rackspace Cloud API documentation
-    def serversDetail(self):
-        return """<servers xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
+    def serversDetail(self, request=None):
+        return ("""<servers xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
   <server id="1234" name="sample-server"
         imageId="2" flavorId="1"
         status="BUILD" progress="60"
@@ -188,24 +190,53 @@ class APIServer(StubServer):
       </private>
     </addresses>
   </server>
-</servers>"""
+</servers>""",)
 
-    def serverDetail(self, handler, id):
+    def serverCreate(self, request=None):
+        assert request.info['headers']['content-type'] == 'application/xml'
+        assert request.info['body']
+        node = minidom.parseString(request.info['body'])
+        for files in node.documentElement.getElementsByTagName('personality'):
+            node.documentElement.removeChild(files)
+        addrs = node.createElement('addresses')
+        priv = node.createElement('private')
+        pub = node.createElement('public')
+        priv.appendChild(node.createElement('ip'))
+        pub.appendChild(node.createElement('ip'))
+        priv.firstChild.setAttribute('addr', '192.168.1.1')
+        pub.firstChild.setAttribute('addr', '10.10.1.1')
+        addrs.appendChild(priv)
+        addrs.appendChild(pub)
+        node.documentElement.appendChild(addrs)
+        node.documentElement.setAttribute('id', str(self.createId))
+        node.documentElement.setAttribute('status', str(self.createStatus))
+        node.documentElement.setAttribute('progress', str(self.createProgress))
+        node.documentElement.setAttribute('hostId', str(self.createHostId))
+        node.documentElement.setAttribute('adminPass', str(self.createAdminPass))
+        return (node.documentElement.toxml(), 202)
+
+    createId = 2000
+    createStatus = 'BUILD'
+    createProgress = 0
+    createHostId = 'f091' * 8
+    createAdminPass = 'aardvarks freak me out the door'
+
+    def serverDetail(self, handler, id, request=None):
         handler.send_response(200)
         msg = 'Got id: ' + id
         handler.send_header('content-length', len(msg))
         handler.end_headers()
         handler.wfile.write(msg)
 
-    def flavorsDetail(self):
-        return """
+    def flavorsDetail(self, request=None):
+        return ("""
 <flavors xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
   <flavor id="1" name="256 MB Server" ram="256" disk="10" />
   <flavor id="2" name="512 MB Server" ram="512" disk="20" />
-</flavors>"""
+</flavors>""",)
 
-    def imagesDetail(self):
-        return """
+    def imagesDetail(self, request=None):
+        return ("""
 <images xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
    <image id="2"   name="CentOS 5.2"
           updated="2010-10-10T12:00:00Z"
@@ -218,5 +249,5 @@ class APIServer(StubServer):
           created="2010-08-10T12:00:00Z"
           status="SAVING" progress="80"
    />
-</images>"""
+</images>""",)
 

@@ -3,12 +3,14 @@
 import test_helper
 import thunderhead.rackspace.api
 import base64, datetime
+import xml.dom.minidom as minidom
 
 class TestRackspaceAPIObjects(test_helper.TestCase):
     def testServerClassToXML(self):
         props = {
             'name': 'Test-Server-Foo',
             'id': 13579,
+            'adminPass': 'foofoofoo',
             'hostId': 'ae81' * 8,
             'flavorId': 3,
             'imageId': 7,
@@ -22,7 +24,7 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
         }
         server = thunderhead.rackspace.api.Server(**props).toXML()
         self.assertEqual(server.getAttribute('xmlns'), 'http://docs.rackspacecloud.com/servers/api/v1.0')
-        for attr in ['name', 'id', 'hostId', 'flavorId', 'imageId', 'status', 'progress', 'sharedIpGroupId']:
+        for attr in ['name', 'id', 'hostId', 'flavorId', 'imageId', 'status', 'progress', 'sharedIpGroupId', 'adminPass']:
             self.assertEqual(server.getAttribute(attr), str(props[attr]))
 
         addr, = server.getElementsByTagName('addresses')
@@ -130,6 +132,52 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
             },
             'images detail XML properly maps to dictionary',
         )
+
+    def testServerCreation(self):
+        properties = {
+            'name': 'Thunderhead Blunderfred Testing Server',
+            'imageId': 5,
+            'flavorId': 6,
+            'metadata': {
+                'role': 'Some testing role',
+                'froggies': 'No froggies.',
+            },
+            'files': {
+                '/file/one': 'This is the content of my first faux-file.  Love it!',
+                '/file/two': 'And once more, with feeling!',
+            },
+        }
+        server = thunderhead.rackspace.api.Server(**properties)
+        created = thunderhead.rackspace.api.createServer(self.connection, server)
+        request = self.server.getRequestData()
+        self.assertEqual(request['method'], 'POST', 'createServer issues a POST')
+        self.assertEqual(request['path'], '/servers', 'createServer path is /servers')
+        # The APIServer strips out any personality block (i.e. files), so verify
+        # their presence in the request info
+        xml = minidom.parseString(request['body'])
+        personality, = xml.documentElement.getElementsByTagName('personality')
+        self.assertEqual(
+            dict([
+                (f.getAttribute('path'), base64.decodestring(f.firstChild.data)) for f in personality.getElementsByTagName('file')
+            ]),
+            properties['files'],
+            'POST XML includes file data as intended',
+        )
+        # The APIServer amends the XML structure it receives, so it suffices to inspect
+        # the resulting structure and not fret about the rest of the request received.
+        self.assertEqual(created.name, properties['name'])
+        self.assertEqual(created.imageId, properties['imageId'])
+        self.assertEqual(created.flavorId, properties['flavorId'])
+        self.assertEqual(created.metadata, properties['metadata'])
+        self.assertFalse(hasattr(created, 'files'), 'files do not propagate from service')
+        # these are hard-coded in APIServer
+        self.assertEqual(created.id, test_helper.APIServer.createId)
+        self.assertEqual(created.status, test_helper.APIServer.createStatus)
+        self.assertEqual(created.progress, test_helper.APIServer.createProgress)
+        self.assertEqual(created.hostId, test_helper.APIServer.createHostId)
+        self.assertEqual(created.adminPass, test_helper.APIServer.createAdminPass)
+        self.assertEqual(created.privateIPs, ['192.168.1.1'])
+        self.assertEqual(created.publicIPs, ['10.10.1.1'])
 
 if __name__ == '__main__':
     test_helper.main()
