@@ -2,6 +2,7 @@
 import httplib
 from urlparse import urlparse
 from . import exceptions
+from . import api
 import xml.dom.minidom as minidom
 
 class BoundConnection(object):
