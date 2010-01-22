@@ -1,6 +1,6 @@
 
 import xml.dom.minidom as minidom
-import base64
+import base64, time, datetime
 
 xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 
@@ -10,17 +10,52 @@ def getServers(conn, since=None):
     result = [Server.fromXML(node) for node in nodes] if nodes else []
     return result
 
-def getFlavors(conn, since=None):
-    (flavors, code) = conn.request('GET', '/flavors/detail')
+def attributeHash(node, attrs):
+    ident = lambda (x): x
+    return dict([
+        (k, (t or ident)(node.getAttribute(k))) for (k, t) in attrs.iteritems() if node.hasAttribute(k)
+    ])
+
+def indexedChildHash(node, tag, attrs):
     result = {}
-    for flavor in flavors.getElementsByTagName('flavor'):
-        item = dict([
-            (key, int(flavor.getAttribute(key))) for key in ['id', 'ram', 'disk']
-        ])
-        item['name'] = flavor.getAttribute('name')
+    for child in node.getElementsByTagName(tag):
+        item = attributeHash(child, attrs)
         result[item['id']] = item
     return result
+ 
+def getFlavors(conn, since=None):
+    (flavors, code) = conn.request('GET', '/flavors/detail')
+    return indexedChildHash(
+        flavors,
+        'flavor',
+        {
+            'id': int, 
+            'ram': int,
+            'disk': int,
+            'name': False,
+        },
+    )
 
+def convertTimestamp(ts):
+    return datetime.datetime(
+        *(time.strptime(ts, '%Y-%m-%dT%H:%M:%SZ')[0:6])
+    )
+
+def getImages(conn, since=None):
+    (images, code) = conn.request('GET', '/images/detail')
+    return indexedChildHash(
+        images,
+        'image',
+        {
+            'id': int,
+            'name': str,
+            'status': str,
+            'updated': convertTimestamp,
+            'created': convertTimestamp,
+            'progress': int,
+            'serverId': int,
+        },
+    )
 
 class Server(object):
     simpleAttributes = ['name', 'status', 'hostId', 'metadata', 'publicIPs', 'privateIPs', 'files']

@@ -2,7 +2,7 @@
 
 import test_helper
 import thunderhead.rackspace.api
-import base64
+import base64, datetime
 
 class TestRackspaceAPIObjects(test_helper.TestCase):
     def testServerClassToXML(self):
@@ -99,6 +99,36 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
                 2: {'id': 2, 'name': '512 MB Server', 'ram': 512, 'disk': 20},
             },
             'Flavors dictionary properly derived from XML',
+        )
+
+    def testImagesDetail(self):
+        images = thunderhead.rackspace.api.getImages(self.connection)
+        self.assertEqual(
+            self.server.getRequestData()['path'],
+            '/images/detail',
+            'getImages request the images detailed listing',
+        )
+        self.assertEqual(
+            images,
+            {
+                2: {
+                    'id': 2,
+                    'name': 'CentOS 5.2',
+                    'status': 'ACTIVE',
+                    'updated': datetime.datetime(2010, 10, 10, 12, 0, 0),
+                    'created': datetime.datetime(2010, 8, 10, 12, 0, 0),
+                },
+                743: {
+                    'id': 743,
+                    'name': 'My Server Backup',
+                    'serverId': 12,
+                    'updated': datetime.datetime(2010, 10, 10, 12, 0, 0),
+                    'created': datetime.datetime(2010, 8, 10, 12, 0, 0),
+                    'status': 'SAVING',
+                    'progress': 80,
+                },
+            },
+            'images detail XML properly maps to dictionary',
         )
 
 if __name__ == '__main__':

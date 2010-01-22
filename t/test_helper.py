@@ -113,6 +113,7 @@ class APIServer(StubServer):
             ('servers/detail', 'serversDetail'),
             ('servers/(\d+)', 'serverDetail'),
             ('flavors/detail', 'flavorsDetail'),
+            ('images/detail', 'imagesDetail'),
         ]),
         'post': transformHandler([
             ('servers', 'serverCreate'),
@@ -202,3 +203,20 @@ class APIServer(StubServer):
   <flavor id="1" name="256 MB Server" ram="256" disk="10" />
   <flavor id="2" name="512 MB Server" ram="512" disk="20" />
 </flavors>"""
+
+    def imagesDetail(self):
+        return """
+<images xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
+   <image id="2"   name="CentOS 5.2"
+          updated="2010-10-10T12:00:00Z"
+          created="2010-08-10T12:00:00Z"
+          status="ACTIVE"
+   />
+   <image id="743" name="My Server Backup"
+          serverId="12"
+          updated="2010-10-10T12:00:00Z"
+          created="2010-08-10T12:00:00Z"
+          status="SAVING" progress="80"
+   />
+</images>"""
+
