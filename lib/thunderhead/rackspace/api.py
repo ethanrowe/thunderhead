@@ -1,4 +1,7 @@
 
+import xml.dom.minidom as minidom
+import base64
+
 xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 
 def getServers(conn, since=None):
@@ -6,9 +9,18 @@ def getServers(conn, since=None):
     nodes = data.getElementsByTagName('server')
     result = [Server.fromXML(node) for node in nodes] if nodes else []
     return result
-    
-import xml.dom.minidom as minidom
-import base64
+
+def getFlavors(conn, since=None):
+    (flavors, code) = conn.request('GET', '/flavors/detail')
+    result = {}
+    for flavor in flavors.getElementsByTagName('flavor'):
+        item = dict([
+            (key, int(flavor.getAttribute(key))) for key in ['id', 'ram', 'disk']
+        ])
+        item['name'] = flavor.getAttribute('name')
+        result[item['id']] = item
+    return result
+
 
 class Server(object):
     simpleAttributes = ['name', 'status', 'hostId', 'metadata', 'publicIPs', 'privateIPs', 'files']

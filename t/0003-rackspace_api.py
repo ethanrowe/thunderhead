@@ -85,6 +85,21 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         self.assertEqual(two.publicIPs, ['67.23.10.133'])
         self.assertEqual(two.privateIPs, ['10.176.42.17'])
 
-        
+    def testFlavorsDetail(self):
+        flavors = thunderhead.rackspace.api.getFlavors(self.connection)
+        self.assertEqual(
+            self.server.getRequestData()['path'],
+            '/flavors/detail',
+            'getFlavors requests the flavors detailed listing',
+        )
+        self.assertEqual(
+            flavors,
+            {
+                1: {'id': 1, 'name': '256 MB Server', 'ram': 256, 'disk': 10},
+                2: {'id': 2, 'name': '512 MB Server', 'ram': 512, 'disk': 20},
+            },
+            'Flavors dictionary properly derived from XML',
+        )
+
 if __name__ == '__main__':
     test_helper.main()

@@ -112,6 +112,7 @@ class APIServer(StubServer):
         'get': transformHandler([
             ('servers/detail', 'serversDetail'),
             ('servers/(\d+)', 'serverDetail'),
+            ('flavors/detail', 'flavorsDetail'),
         ]),
         'post': transformHandler([
             ('servers', 'serverCreate'),
@@ -195,3 +196,9 @@ class APIServer(StubServer):
         handler.end_headers()
         handler.wfile.write(msg)
 
+    def flavorsDetail(self):
+        return """
+<flavors xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
+  <flavor id="1" name="256 MB Server" ram="256" disk="10" />
+  <flavor id="2" name="512 MB Server" ram="512" disk="20" />
+</flavors>"""
