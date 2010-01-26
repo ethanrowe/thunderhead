@@ -13,8 +13,9 @@ if sys.version_info[0:2] < (2, 5):
         def __init__(self, parseResult):
             for key, val in zip(self.parseFields, parseResult):
                 setattr(self, key, val)
-            self.hostname, port = self.netloc.split(':', 1)
-            self.port = (port and int(port)) or None
+            locInfo = self.netloc.split(':', 1)
+            self.hostname = locInfo[0]
+            self.port = (len(locInfo) > 1 and int(locInfo[1])) or None
 
     nativeUrlparse = urlparse
     def urlparse(*args):
