@@ -11,7 +11,7 @@ def throw(type, *args):
     klass = handlerFor(type) or UnknownExceptionType
     raise klass(*args)
 
-class RackspaceException(Exception, object): pass
+class RackspaceException(Exception): pass
 class BadCredentialsException(RackspaceException): pass
 class UnknownExceptionType(RackspaceException): pass
 
@@ -34,8 +34,18 @@ faultList = [
 ]
 
 # build out the exception classes from the base list
+# Note support for 2.4 annoyances.  Curse you, RHEL/CentOS 5.x!
+
+import sys
+_useOldClasses = sys.version_info[0:2] < (2, 5)
 for fault in faultList:
-    klass = type(fault[0].upper() + fault[1::] + 'Exception', (RackspaceException,), {'fault': fault})
-    globals()[klass.__name__] = klass
+    if _useOldClasses:
+        klassname = fault[0].upper() + fault[1::] + 'Exception'
+        exec 'class ' + klassname + '(RackspaceException): pass'
+        klass = globals()[klassname]
+        setattr(klass, 'fault', fault)
+    else:
+        klass = type(fault[0].upper() + fault[1::] + 'Exception', (RackspaceException,), {'fault': fault})
+        globals()[klass.__name__] = klass
     registerHandler(fault, klass)
 

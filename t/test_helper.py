@@ -134,7 +134,7 @@ class APIServer(StubServer):
                 if result:
                     func = getattr(self, action)
                     arg = result.groups()
-                    return self.xmlWrapper(handler, *func(*arg, request=handler))
+                    return self.xmlWrapper(handler, *func(*arg, **{'request': handler}))
         return self.notFound(handler)
 
     def xmlWrapper(self, handler, content, *extra):

@@ -5,6 +5,20 @@ from urlparse import urlparse
 import thunderhead.rackspace.exceptions
 import thunderhead.rackspace.api
 import xml.dom.minidom as minidom
+import sys
+
+if sys.version_info[0:2] < (2, 5):
+    class ParseResult(object):
+        parseFields = ['scheme', 'netloc', 'path', 'params', 'query', 'fragment']
+        def __init__(self, parseResult):
+            for key, val in zip(self.parseFields, parseResult):
+                setattr(self, key, val)
+            self.hostname, port = self.netloc.split(':', 1)
+            self.port = (port and int(port)) or None
+
+    nativeUrlparse = urlparse
+    def urlparse(*args):
+        return ParseResult(nativeUrlparse(*args))
 
 class BoundConnection(object):
 

@@ -86,7 +86,7 @@ class TestRackspaceBoundConnection(test_helper.TestCase):
         message, code, details = (None, None, None)
         try:
             (foo, bar) = connection.request('GET', '/any-path-will-do')
-        except thunderhead.rackspace.exceptions.CloudServersFaultException as expected:
+        except thunderhead.rackspace.exceptions.CloudServersFaultException, expected:
             message, code, details = expected.args
         self.assertEqual((message, code, details), ('Everything is awful', 400, 'We all perish'))
             
