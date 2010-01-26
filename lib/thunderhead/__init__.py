@@ -20,8 +20,8 @@ class Account(object):
 
     def _getSession(self):
         if not hasattr(self, '_session'):
-            args = (getattr(self, 'credentials') or [])
-            kwargs = (getattr(self, 'namedCredentials') or {})
+            args = (getattr(self, 'credentials', None) or [])
+            kwargs = (getattr(self, 'namedCredentials', None) or {})
             self._session = self.provider.Authorization(*args, **kwargs)
         return self._session
 
