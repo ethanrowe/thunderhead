@@ -11,7 +11,7 @@ def throw(type, *args):
     klass = handlerFor(type) or UnknownExceptionType
     raise klass(*args)
 
-class RackspaceException(Exception): pass
+class RackspaceException(Exception, object): pass
 class BadCredentialsException(RackspaceException): pass
 class UnknownExceptionType(RackspaceException): pass
 
