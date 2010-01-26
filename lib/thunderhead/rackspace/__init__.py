@@ -1,8 +1,9 @@
 
 import httplib
 from urlparse import urlparse
-from . import exceptions
-from . import api
+# Change to relative import syntax when we can safely deprecate Python 2.4 support
+import thunderhead.rackspace.exceptions
+import thunderhead.rackspace.api
 import xml.dom.minidom as minidom
 
 class BoundConnection(object):
