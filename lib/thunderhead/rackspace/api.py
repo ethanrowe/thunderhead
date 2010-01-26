@@ -4,6 +4,13 @@ import base64, time, datetime
 
 xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 
+serverManagementInterface = [
+    'createServer',
+    'getFlavors',
+    'getImages',
+    'getServers',
+]
+
 def getServers(conn, since=None):
     (data, code) = conn.request('GET', '/servers/detail')
     nodes = data.getElementsByTagName('server')

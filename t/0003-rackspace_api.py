@@ -6,6 +6,21 @@ import base64, datetime
 import xml.dom.minidom as minidom
 
 class TestRackspaceAPIObjects(test_helper.TestCase):
+    def testAPIServerManagementInterface(self):
+        self.assertTrue(hasattr(thunderhead.rackspace.api, 'serverManagementInterface'))
+        api = thunderhead.rackspace.api.serverManagementInterface[::]
+        api.sort()
+        self.assertEqual(
+            api,
+            [
+                'createServer',
+                'getFlavors',
+                'getImages',
+                'getServers',
+            ],
+            'serverManagementInterface provides appropriate functions',
+        )
+
     def testServerClassToXML(self):
         props = {
             'name': 'Test-Server-Foo',
