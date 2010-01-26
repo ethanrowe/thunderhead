@@ -5,7 +5,7 @@ def registerHandler(type, klass):
     return klass
 
 def handlerFor(type):
-    return _typeRegistry[type] if _typeRegistry.has_key(type) else None
+    return ((_typeRegistry.has_key(type) and _typeRegistry[type]) or None)
 
 def throw(type, *args):
     klass = handlerFor(type) or UnknownExceptionType

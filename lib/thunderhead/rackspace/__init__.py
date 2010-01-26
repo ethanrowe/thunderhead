@@ -19,7 +19,7 @@ class BoundConnection(object):
 
     @classmethod
     def getConnection(self, request):
-        klass = httplib.HTTPSConnection if request.scheme == 'https' else httplib.HTTPConnection
+        klass = ((request.scheme == 'https' and httplib.HTTPSConnection) or httplib.HTTPConnection)
         args = [request.hostname]
         if request.port: args.append(request.port)
         return klass(*args)
@@ -54,7 +54,7 @@ class BoundConnection(object):
         return (body, code)
 
     def handleFault(self, code, xml):
-        type = xml.nodeName if xml else ''
+        type = ((xml and xml.nodeName) or '')
         args = []
         if type:
             notes = dict([
@@ -99,7 +99,7 @@ class Authorization(object):
 
     @classmethod
     def getConnection(self, request):
-        klass = httplib.HTTPConnection if request.scheme == 'http' else httplib.HTTPSConnection
+        klass = ((request.scheme == 'http' and httplib.HTTPConnection) or httplib.HTTPSConnection)
         args = [request.hostname]
         if request.port: args.append(request.port)
         return klass(*args)

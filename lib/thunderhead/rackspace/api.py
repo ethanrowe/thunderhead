@@ -14,7 +14,7 @@ serverManagementInterface = [
 def getServers(conn, since=None):
     (data, code) = conn.request('GET', '/servers/detail')
     nodes = data.getElementsByTagName('server')
-    result = [Server.fromXML(node) for node in nodes] if nodes else []
+    result = ((nodes and [Server.fromXML(node) for node in nodes]) or [])
     return result
 
 def createServer(conn, server):
@@ -100,7 +100,7 @@ class Server(object):
         if data.has_key('addresses') and data['addresses'].hasChildNodes():
             for addrs in data['addresses'].childNodes:
                 if hasattr(addrs, 'nodeName') and hasattr(addrs, 'getElementsByTagName'):
-                    key = 'publicIPs' if addrs.nodeName == 'public' else 'privateIPs'
+                    key = ((addrs.nodeName == 'public' and 'publicIPs') or 'privateIPs')
                     ips = addrs.getElementsByTagName('ip')
                     if ips:
                         hash[key] = [ip.getAttribute('addr') for ip in ips]
