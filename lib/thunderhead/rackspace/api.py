@@ -60,14 +60,51 @@ xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 serverManagementInterface = [
     {'name': 'Server', 'wrapper': None},
     'createServer',
+    'createSharedIPGroup',
     'deleteServer',
+    'deleteSharedIPGroup',
     {'name': 'getFlavors', 'wrapper': CachedResource},
     {'name': 'getImages', 'wrapper': CachedResource},
+    'getPublicIPs',
     {'name': 'getServers', 'wrapper': CachedResource},
+    'getSharedIPGroups',
+    'shareIP',
 ]
 
 def queryString(since):
     return (since and '?changes-since=' + str(since)) or ''
+
+def deleteServer(conn, server):
+    (body, code) = conn.request('DELETE', '/servers/' + server)
+    return code
+
+def deleteSharedIPGroup(conn, group):
+    (body, code) = conn.request('DELETE', '/shared_ip_groups/' + group)
+    return code
+
+def getSharedIPGroups(conn):
+    (data, code) = conn.request('GET', '/shared_ip_groups')
+    return data
+
+def createSharedIPGroup(conn, sharedipgroup):
+    (data, code) = conn.request('POST', '/shared_ip_groups', sharedipgroup.toXML())
+    return data
+
+def shareIP(conn, sharedip, serverId, address):
+    (body, code) = conn.request('PUT', '/servers/' + serverId + '/ips/public/' + address, sharedip.toXML())
+    return code
+
+# This just dumbly fetches public IPs for the moment
+# TODO: figure out a way to determine whether an IP has been shared or not
+def getPublicIPs(conn, server):
+    (ips, code) = conn.request('GET', '/servers/' + server + '/ips/public')
+    return manualIndexedChildHash(
+        ips,
+        'ip',
+        {
+            'addr': str,
+        },
+    )
 
 def getServers(conn, since=None):
     (data, code) = conn.request('GET', '/servers/detail' + queryString(since))
@@ -100,6 +137,16 @@ def indexedChildHash(node, tag, attrs):
             item = attributeHash(child, attrs)
             result[item['id']] = item
     return result
+
+def manualIndexedChildHash(node, tag, attrs):
+    result = {}
+    myid = 1
+    for child in node.getElementsByTagName(tag):
+        item = attributeHash(child, attrs)
+        result[myid] = item
+        myid += 1
+    return result
+ 
  
 def getFlavors(conn, since=None):
     (flavors, code) = conn.request('GET', '/flavors/detail' + queryString(since))
@@ -134,7 +181,22 @@ def getImages(conn, since=None):
         },
     )
 
-class Server(object):
+
+class APIObject(object):
+    simpleAttributes = []
+    integerAttributes = []
+    xmlAttributes = []
+
+    def __init__(self, *args, **kwargs):
+        self.initializeAttributes(*args, **kwargs)
+
+    def initializeAttributes(self, *args, **kwargs):
+        for simpleAttr in self.simpleAttributes:
+            if kwargs.has_key(simpleAttr): setattr(self, simpleAttr, kwargs[simpleAttr])
+        for intAttr in self.integerAttributes:
+            if kwargs.has_key(intAttr): setattr(self, intAttr, int(kwargs[intAttr]))
+
+class Server(APIObject):
     simpleAttributes = ['name', 'status', 'hostId', 'metadata', 'publicIPs', 'privateIPs', 'files', 'adminPass']
     integerAttributes = ['id', 'imageId', 'flavorId', 'progress', 'sharedIpGroupId']
     xmlAttributes = [
@@ -148,12 +210,6 @@ class Server(object):
         'sharedIpGroupId',
         'adminPass',
     ]
-
-    def __init__(self, *args, **kwargs):
-        for simpleAttr in self.simpleAttributes:
-            if kwargs.has_key(simpleAttr): setattr(self, simpleAttr, kwargs[simpleAttr])
-        for intAttr in self.integerAttributes:
-            if kwargs.has_key(intAttr): setattr(self, intAttr, int(kwargs[intAttr]))
 
     @classmethod
     def fromXML(self, xml):
@@ -207,4 +263,36 @@ class Server(object):
                 personality.appendChild(fileNode)
             if personality.hasChildNodes(): node.appendChild(personality)
         return node 
+
+class SharedIP(APIObject):
+    simpleAttributes = ['configureServer']
+    integerAttributes = ['sharedIpGroupId']
+    xmlAttributes = ['configureServer', 'sharedIpGroupId']
+
+    def toXML(self):
+        doc = minidom.Document()
+        node = minidom.Element('shareIp')
+        node.setAttribute('xmlns', xmlns)
+        for attr in self.xmlAttributes:
+            if hasattr(self, attr):
+                node.setAttribute(attr, str(getattr(self, attr)))
+        return node
+
+
+class SharedIPGroup(APIObject):
+    simpleAttributes = ['name']
+    integerAttributes = ['server_id', 'group_id']
+    xmlAttributes = ['name']
+
+    def toXML(self):
+        doc = minidom.Document()
+        node = minidom.Element('sharedIpGroup')
+        node.setAttribute('xmlns', xmlns)
+        for attr in self.xmlAttributes:
+            if hasattr(self, attr):
+                node.setAttribute(attr, str(getattr(self, attr)))
+        ipGroup = minidom.Element('server')
+        ipGroup.setAttribute('id', str(getattr(self, 'server_id')))
+        node.appendChild(ipGroup)
+        return node
 

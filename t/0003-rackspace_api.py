@@ -114,11 +114,16 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
             api,
             [
                 'createServer',
+                'createSharedIPGroup',
                 'deleteServer',
+                'deleteSharedIPGroup',
                 {'name':'getFlavors', 'wrapper': thunderhead.rackspace.api.CachedResource},
                 {'name':'getImages', 'wrapper': thunderhead.rackspace.api.CachedResource},
+                'getPublicIPs',
                 {'name':'getServers', 'wrapper': thunderhead.rackspace.api.CachedResource},
+                'getSharedIPGroups',
                 {'name':'Server', 'wrapper': None},
+                'shareIP',
             ],
             'serverManagementInterface provides appropriate functions and wrappers',
         )
@@ -348,6 +353,60 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         self.assertEqual(created.adminPass, test_helper.APIServer.createAdminPass)
         self.assertEqual(created.privateIPs, ['192.168.1.1'])
         self.assertEqual(created.publicIPs, ['10.10.1.1'])
+
+    def testServerPublicIPs(self):
+        testIPs = thunderhead.rackspace.api.getPublicIPs(self.connection, '1')
+        self.assertEqual(testIPs, { 1: { 'addr': '67.23.10.132' }, 2: { 'addr': '67.23.10.131' }, } )
+
+# Plan: store requested shared IPs, look to see if there is one for that server
+# if so: return it
+# if not - report that none were found
+    def testShareIP(self):
+        properties = {
+            'sharedIpGroupId': 1234,
+            'configureServer': 'true',
+        }
+        mySharedIP = thunderhead.rackspace.api.SharedIP(**properties)
+        # Result should be 202
+        returnCode = thunderhead.rackspace.api.shareIP(self.connection, mySharedIP, '1', '67.23.10.132')
+        self.assertEqual(returnCode, 202)
+
+    def testCreateSharedIPGroup(self):
+        properties = {
+                'name': 'Shared IP Group 1',
+                'server_id': 422,
+        }
+        # Create shared IP group object that emits XML for the server
+        sharedIPGroup = thunderhead.rackspace.api.SharedIPGroup(**properties)
+        created = thunderhead.rackspace.api.createSharedIPGroup(self.connection, sharedIPGroup)
+        request = self.server.getRequestData()
+        self.assertEqual(request['method'], 'POST', 'createSharedIPGroup  issues a POST')
+        self.assertEqual(request['path'], '/shared_ip_groups', 'createSharedIPGroup  path is /shared_ip_groups')
+        xml = minidom.parseString(request['body'])
+        ## XXX: Need to add some real tests here
+        #self.assertTrue(hasattr(created, 'name'), 'Has attribute name')
+
+    def testListSharedIPGroup(self):
+        ipList = thunderhead.rackspace.api.getSharedIPGroups(self.connection)
+        request = self.server.getRequestData()
+        self.assertEqual(request['method'], 'GET', 'createSharedIPGroup  issues a GET')
+        self.assertEqual(request['path'], '/shared_ip_groups', 'createSharedIPGroup  path is /shared_ip_groups')
+        group1, group2 = ipList.getElementsByTagName('sharedIpGroup')
+        self.assertEqual(group1.getAttribute('id'), '1234')
+        server1, server2 = group1.getElementsByTagName('server')
+        self.assertEqual(server1.getAttribute('id'), '422')
+        self.assertEqual(server2.getAttribute('id'), '3445')
+        
+        self.assertEqual(group2.getAttribute('id'), '5678')
+        server3, server4, server5 = group2.getElementsByTagName('server')
+        self.assertEqual(server3.getAttribute('id'), '23203')
+        self.assertEqual(server4.getAttribute('id'), '2456')
+        self.assertEqual(server5.getAttribute('id'), '9891')
+
+    def testDeleteSharedIPGroup(self):
+        code = thunderhead.rackspace.api.deleteSharedIPGroup(self.connection, '1234')
+        # code should be 204 if success
+        self.assertEqual(code, 204)
 
 class TestEmptyResources(test_helper.TestCase):
     def setUp(self):

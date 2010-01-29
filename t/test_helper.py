@@ -26,6 +26,16 @@ sys.path = [
         ) ] + sys.path
 
 
+##########################################
+# Process for adding to the StubServer for tests:
+# * Create a failing test function for some API element in t/*
+# * add URL to respond to to 'map' data structure, with a new handler name
+# * add a handler in StubServer
+# * add a function name to lib/thunderhead/*/api.py in serverManagementInterface
+# * Implement function as an HTTP request
+# * Return a data structure
+##########################################
+
 class StubServer(object):
     class Handler(BaseHTTPServer.BaseHTTPRequestHandler):
         def generalHandler(self, type):
@@ -130,17 +140,22 @@ class APIServer(StubServer):
     map = {
         'get': transformHandler([
             ('servers/detail(?:\?changes-since=.+)?', 'serversDetail'),
+            ('servers/1/ips/public', 'serverIPsPublic'),
             ('servers/(\d+)', 'serverDetail'),
             ('flavors/detail(?:\?changes-since=.+)?', 'flavorsDetail'),
             ('images/detail(?:\?changes-since=.+)?', 'imagesDetail'),
+            ('shared_ip_groups', 'sharedIPsList'),
         ]),
         'post': transformHandler([
             ('servers', 'serverCreate'),
+            ('shared_ip_groups', 'sharedIPCreate'),
         ]),
-        'put': {
-        },
+        'put': transformHandler([
+            ('servers/(\d+)/ips/public/((\d+[.]*)){4}', 'sharedIPsPublicCreate'),
+        ]),
         'delete': transformHandler([
             ('servers/(\d+)', 'serverDelete'),
+            ('shared_ip_groups/(\d+)', 'sharedIPDelete'),
         ]),
     }
 
@@ -271,6 +286,66 @@ class APIServer(StubServer):
           status="SAVING" progress="80"
    />
 </images>""",)
+
+    def serverIPsPublic(self, request=None):
+        # This is just to return something at present
+        return("""
+<public xmlns="http://docs.rackspacecloud.com/servers/api/v1.0"> 
+  <ip addr="67.23.10.132"/> 
+  <ip addr="67.23.10.131"/>
+</public>""",)
+
+    def sharedIPsPublicCreate(self, handler, id, address, request=None):
+        assert(handler)
+        assert(id)
+        assert(address)
+        # Awesomely, nothing is returned from this call, so need
+        # to do some testing to verify that the thing we got is what we wanted
+        assert request.info['headers']['content-type'] == 'application/xml'
+        assert request.info['body']
+        node = minidom.parseString(request.info['body'])
+        assert node.documentElement.tagName == 'shareIp'
+        assert node.documentElement.hasAttribute('configureServer')
+        assert node.documentElement.hasAttribute('sharedIpGroupId')
+        return (None, 202)
+
+    def sharedIPCreate(self, request=None):
+        assert request.info['headers']['content-type'] == 'application/xml'
+        assert request.info['body']
+        return ("""
+<sharedIpGroup
+    xmlns="http://docs.rackspacecloud.com/servers/api/v1.0"
+ id="1234" name="Shared IP Group 1">
+  <servers>
+    <server id="422"/>
+  </servers>
+</sharedIpGroup>""", 201)
+
+    def sharedIPsList(self, request=None):
+        return ("""
+<sharedIpGroups xmlns="http://docs.rackspacecloud.com/servers/api/v1.0">
+  <sharedIpGroup id="1234" name="Shared IP Group 1">
+    <servers>
+      <server id="422" />
+      <server id="3445" />
+    </servers>
+  </sharedIpGroup>
+  <sharedIpGroup id="5678" name="Shared IP Group 2">
+    <servers>
+      <server id="23203"/>
+      <server id="2456" />
+      <server id="9891" />
+    </servers>
+  </sharedIpGroup>
+</sharedIpGroups>""", 200)
+
+    def sharedIPDelete(self, group, request=None):
+        assert (group)
+        return (None, 204)
+
+    def serverDelete(self, server, request=None):
+        assert (server)
+        return (None, 204)
 
 class APIServerEmpty(APIServer):
     def emptyResponse(self, request=None):
