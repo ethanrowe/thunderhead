@@ -21,6 +21,10 @@ def createServer(conn, server):
     (created, code) = conn.request('POST', '/servers', server.toXML())
     return Server.fromXML(created)
 
+def deleteServer(conn, server):
+    (result, code) = conn.request('DELETE', '/servers/' + str(getattr(server, 'id', server)))
+    return True
+
 def attributeHash(node, attrs):
     ident = lambda (x): x
     return dict([

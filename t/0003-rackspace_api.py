@@ -102,6 +102,37 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         self.assertEqual(two.publicIPs, ['67.23.10.133'])
         self.assertEqual(two.privateIPs, ['10.176.42.17'])
 
+    def testServerDeleteById(self):
+        result = thunderhead.rackspace.api.deleteServer(self.connection, 1234)
+        request = self.server.getRequestData()
+        self.assertTrue(result, 'deleteServer() with raw ID returns true')
+        self.assertEqual(
+            request['path'],
+            '/servers/1234',
+            'deleteServer() with raw ID requests /servers/<id>'
+        )
+        self.assertEqual(
+            request['method'],
+            'DELETE',
+            'deleteServer() with raw ID uses a DELETE request',
+        )
+
+    def testServerDeleteByObject(self):
+        server = thunderhead.rackspace.api.Server(id=4567)
+        result = thunderhead.rackspace.api.deleteServer(self.connection, server)
+        request = self.server.getRequestData()
+        self.assertTrue(result, 'deleteServer() with object returns true')
+        self.assertEqual(
+            request['path'],
+            '/servers/4567',
+            'deleteServer() with object requests /servers/<object.id>',
+        )
+        self.assertEqual(
+            request['method'],
+            'DELETE',
+            'deleteServer() with object uses a DELETE request',
+        )
+
     def testFlavorsDetail(self):
         flavors = thunderhead.rackspace.api.getFlavors(self.connection)
         self.assertEqual(

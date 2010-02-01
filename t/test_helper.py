@@ -215,6 +215,10 @@ class APIServer(StubServer):
         node.documentElement.setAttribute('adminPass', str(self.createAdminPass))
         return (node.documentElement.toxml(), 202)
 
+    def serverDelete(self, id, request=None):
+        assert(id)
+        return (None, 202)
+
     createId = 2000
     createStatus = 'BUILD'
     createProgress = 0
