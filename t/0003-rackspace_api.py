@@ -14,6 +14,7 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
             api,
             [
                 'createServer',
+                'deleteServer',
                 'getFlavors',
                 'getImages',
                 'getServers',

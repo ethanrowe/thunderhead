@@ -6,6 +6,7 @@ xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 
 serverManagementInterface = [
     'createServer',
+    'deleteServer',
     'getFlavors',
     'getImages',
     'getServers',
