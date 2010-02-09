@@ -49,3 +49,49 @@ class Account(object):
         None,
     )
 
+class CachedResource(object):
+    """
+    NAME
+        CachedResource
+
+    DESCRIPTION
+        General utility class for providing function/method wrapper objects
+        with basic caching scheme.
+
+        A concrete implementation needs to define:
+        * an initialize method
+        * an update method
+        * an optional representation method
+
+        Each method should operate on an underlying "asset" attribute that contains
+        the cached state.
+
+        The initialize method will should perform the relevant logic for determining the
+        first value for the asset.
+
+        The update method should do whatever is necessary to determine whether the asset
+        needs to be updated, and perform that update logic as needed as well.
+
+        The representation method's return value is used for the return value of
+        __call__ on the wrapper object.  By default, it simply returns the cached
+        asset.
+
+        All three methods are passed along any positional and keyword arguments that were
+        provided to the initial invocation.  This allows for strategies such as the asset
+        maintaining a full set of data, maintained by initialize/update, with representation
+        returning a subset of the asset data by appying filters based on the arguments.
+    """
+    initialized = False
+    asset = None
+
+    def representation(self, *args, **kwargs):
+        return self.asset
+
+    def __call__(self, *args, **kwargs):
+        if not self.initialized:
+            self.initialize(*args, **kwargs)
+            self.initialized = True
+        else:
+            self.update(*args, **kwargs)
+        return self.representation(*args, **kwargs)
+
