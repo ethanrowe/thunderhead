@@ -18,6 +18,42 @@
 
 import xml.dom.minidom as minidom
 import base64, time, datetime
+from thunderhead import CachedResource as BaseCachedResource
+
+def unixNow():
+    return int(datetime.datetime.now().strftime('%s'))
+
+class CachedResource(BaseCachedResource):
+    timestamp = None
+    interval = 60
+
+    def __init__(self, basefunc):
+        self.baseFunction = basefunc
+
+    def merge(self, values):
+        newset = dict(self.asset or {})
+        for key, value in values.iteritems():
+            if getattr(value, 'status', None) == 'DELETED' or (
+                hasattr(value, 'has_key') and value.has_key('status') and value['status'] == 'DELETED'
+            ):
+                newset.pop(key, None)
+            else:
+                newset[key] = value
+        return newset
+
+    def needsUpdate(self):
+        return self.timestamp and (self.timestamp + self.interval) <= unixNow()
+
+    def initialize(self, *args, **kwargs):
+        self.timestamp = unixNow()
+        self.asset = self.baseFunction(*args, **kwargs)
+
+    def update(self, *args, **kwargs):
+        if self.needsUpdate():
+            timestamp = unixNow()
+            self.asset = self.merge(self.baseFunction(*(args + (self.timestamp,)), **kwargs))
+            self.timestamp = timestamp
+        
 
 xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 

@@ -23,6 +23,88 @@ import thunderhead.rackspace.api
 import base64, datetime
 import xml.dom.minidom as minidom
 
+class TestRackspaceAPICachedResources(test_helper.TestCase):
+    def setUp(self):
+        self.calls = {}
+        def baseFunction(*args, **kwargs):
+            calls = {}
+            key = len(self.calls.keys()) + 1
+            calls[key] = (args, kwargs)
+            self.calls[key] = calls[key]
+            return calls
+        self.resource = thunderhead.rackspace.api.CachedResource(baseFunction)
+
+    def testDefaults(self):
+        self.assertEqual(self.resource.interval, 60, 'cache interval defaults to 60 seconds')
+        self.assertEqual(self.resource.timestamp, None, 'timestamp defaults to none')
+
+    def testNeedsUpdate(self):
+        self.resource.timestamp = thunderhead.rackspace.api.unixNow()
+        self.resource.interval = 60
+        self.assertFalse(self.resource.needsUpdate(), 'needsUpdate false if time within interval')
+        self.resource.interval = 0
+        self.assertTrue(self.resource.needsUpdate(), 'needsUpdate true if time outside interval')
+
+    def testMergeFunction(self):
+        self.resource.asset = {'a': 1, 'b': 2}
+        self.assertEqual(
+            self.resource.merge({'c': 3}),
+            {'a':1, 'b':2, 'c':3},
+            'merge adds new entry into asset',
+        )
+        class Entity(object):
+            status = 'DELETED'
+        entity = Entity()
+        self.assertEqual(
+            self.resource.merge({'a': entity}),
+            {'b': 2},
+            'merge removes entity if it has a "status" attribute with "DELETED" value',
+        )
+        self.assertEqual(
+            self.resource.merge({'b': {'status': 'DELETED'}}),
+            {'a': 1},
+            'merge removes hash entity if it has a "status" key with value "DELETED"',
+        )
+        self.assertEqual(
+            self.resource.merge({'a': 1.1}),
+            {'a': 1.1, 'b': 2},
+            'merge replaces old value with new value for a given key',
+        )
+        self.assertEqual(
+            self.resource.merge({'a': 5, 'c': 'C', 'b': {'status': 'DELETED'}}),
+            {'a': 5, 'c': 'C'},
+            'merge handles combination of new, edited, and deleted items',
+        )
+
+    def testBaseFunctionUsage(self):
+        self.assertEqual(
+            self.resource('some', 'arguments', other='argument'),
+            {1: (('some','arguments'), {'other':'argument'})},
+            'initialization calls base function appropriately',
+        )
+        self.assertTrue(self.resource.timestamp, 'timestamp set after initial invocation')
+        self.assertEqual(
+            self.resource('z', 'y', 'x', foof='flaf'),
+            {1: (('some', 'arguments'), {'other':'argument'})},
+            'update leaves base function uncalled when update is not necessary',
+        )
+        self.resource.interval = 0
+        ts = self.resource.timestamp
+        test_helper.time.sleep(1)
+        self.assertEqual(
+            self.resource('a', 'b', 'c', z='Z', y='Y'),
+            {
+                1: (('some', 'arguments'), {'other':'argument'}),
+                2: (('a','b','c', ts), {'z':'Z', 'y':'Y'}),
+            },
+            #'update calls base function with args and timestamp when interval elapsed'
+        )
+        self.assertTrue(
+            self.resource.timestamp > ts,
+            'update adjusts the timestamp appropriately',
+        )
+        
+
 class TestRackspaceAPIObjects(test_helper.TestCase):
     def testAPIServerManagementInterface(self):
         self.assertTrue(hasattr(thunderhead.rackspace.api, 'serverManagementInterface'))
