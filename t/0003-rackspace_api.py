@@ -210,6 +210,21 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         self.assertEqual(two.publicIPs, ['67.23.10.133'])
         self.assertEqual(two.privateIPs, ['10.176.42.17'])
 
+    def testServersDetailSince(self):
+        result = thunderhead.rackspace.api.getServers(self.connection, since='foo')
+        request = self.server.getRequestData()
+        self.assertEqual(request['path'], '/servers/detail?changes-since=foo')
+
+    def testFlavorsSince(self):
+        result = thunderhead.rackspace.api.getFlavors(self.connection, since='foo')
+        request = self.server.getRequestData()
+        self.assertEqual(request['path'], '/flavors/detail?changes-since=foo')
+
+    def testImagesSince(self):
+        result = thunderhead.rackspace.api.getImages(self.connection, since='foo')
+        request = self.server.getRequestData()
+        self.assertEqual(request['path'], '/images/detail?changes-since=foo')
+        
     def testServerDeleteById(self):
         result = thunderhead.rackspace.api.deleteServer(self.connection, 1234)
         request = self.server.getRequestData()

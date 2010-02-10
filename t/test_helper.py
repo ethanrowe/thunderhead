@@ -129,10 +129,10 @@ class APIServer(StubServer):
 
     map = {
         'get': transformHandler([
-            ('servers/detail', 'serversDetail'),
+            ('servers/detail(?:\?changes-since=.+)?', 'serversDetail'),
             ('servers/(\d+)', 'serverDetail'),
-            ('flavors/detail', 'flavorsDetail'),
-            ('images/detail', 'imagesDetail'),
+            ('flavors/detail(?:\?changes-since=.+)?', 'flavorsDetail'),
+            ('images/detail(?:\?changes-since=.+)?', 'imagesDetail'),
         ]),
         'post': transformHandler([
             ('servers', 'serverCreate'),

@@ -65,8 +65,11 @@ serverManagementInterface = [
     {'name': 'getServers', 'wrapper': CachedResource},
 ]
 
+def queryString(since):
+    return (since and '?changes-since=' + str(since)) or ''
+
 def getServers(conn, since=None):
-    (data, code) = conn.request('GET', '/servers/detail')
+    (data, code) = conn.request('GET', '/servers/detail' + queryString(since))
     nodes = data.getElementsByTagName('server')
     result = ((nodes and [Server.fromXML(node) for node in nodes]) or [])
     return dict([(s.id, s) for s in result])
@@ -93,7 +96,7 @@ def indexedChildHash(node, tag, attrs):
     return result
  
 def getFlavors(conn, since=None):
-    (flavors, code) = conn.request('GET', '/flavors/detail')
+    (flavors, code) = conn.request('GET', '/flavors/detail' + queryString(since))
     return indexedChildHash(
         flavors,
         'flavor',
@@ -110,7 +113,7 @@ def convertTimestamp(ts):
     return str(ts)
 
 def getImages(conn, since=None):
-    (images, code) = conn.request('GET', '/images/detail')
+    (images, code) = conn.request('GET', '/images/detail' + queryString(since))
     return indexedChildHash(
         images,
         'image',
