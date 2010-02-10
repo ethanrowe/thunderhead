@@ -103,3 +103,68 @@ class CachedResource(object):
             self.update(*args, **kwargs)
         return self.representation(*args, **kwargs)
 
+class Role(object):
+    """
+NAME
+    Role
+
+DESCRIPTION
+    The Role class represents a "role" within your cloud operations.
+
+    This allows you to design common server configurations -- consisting of
+    image, flavor, properties, etc. -- for reuse within your operations at
+    a higher level than basic images.
+
+IMPLEMENTING ROLES
+    To implement a role, you need to do a couple of basic things:
+
+    1. Inherit from thunderhead.Role
+
+    2. Define the "serverDefaults" attribute in your class; this should be a dictionary
+    of keyword arguments that would get passed to account.Server() under the hood
+
+    3. Define the "isMember" method in your class; this should, given a server object,
+    return True/False depending on whether or not the server has the role represented
+    by your class.
+
+    4. Define the account to use in association with this role, as the "account"
+    attribute.
+
+    5. Optionally, define the "initServer" method which, given a new server object as
+    input, can modify that server object in arbitrary ways.  The result of this method
+    will be the result of the Server() call on the role class.
+
+    For now, things should be set at the class level.
+
+METHODS
+    Server(): invoke to create a new server object configured for use as the role in question.
+
+    getServers(): return the dictionary of servers implementing this role.
+
+    createServer(server): convenience function to pass through the server object <server>
+    to account.createServer().
+
+    """
+
+    serverDefaults = {}
+    account = None
+    @classmethod
+    def serverInit(self, server): return server
+    
+    @classmethod
+    def Server(self, *args, **kwargs):
+        server = self.account.Server(*args, **dict(self.serverDefaults, **kwargs))
+        return self.serverInit(server)
+
+    @classmethod
+    def getServers(self, *args, **kwargs):
+        servers = self.account.getServers(*args, **kwargs)
+        return dict([(id, s) for id, s in servers.iteritems() if self.isMember(s)])
+
+    @classmethod
+    def isMember(self, server): return False
+
+    @classmethod
+    def createServer(self, *args, **kwargs):
+        return self.account.createServer(*args, **kwargs)
+
