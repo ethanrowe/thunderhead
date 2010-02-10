@@ -95,7 +95,7 @@ class TestRackspaceAPICachedResources(test_helper.TestCase):
             self.resource('a', 'b', 'c', z='Z', y='Y'),
             {
                 1: (('some', 'arguments'), {'other':'argument'}),
-                2: (('a','b','c', ts), {'z':'Z', 'y':'Y'}),
+                2: (('a','b','c'), {'z':'Z', 'y':'Y', 'since': ts}),
             },
             #'update calls base function with args and timestamp when interval elapsed'
         )

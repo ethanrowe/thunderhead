@@ -51,7 +51,7 @@ class CachedResource(BaseCachedResource):
     def update(self, *args, **kwargs):
         if self.needsUpdate():
             timestamp = unixNow()
-            self.asset = self.merge(self.baseFunction(*(args + (self.timestamp,)), **kwargs))
+            self.asset = self.merge(self.baseFunction(*args, **dict({'since': self.timestamp}, **kwargs)))
             self.timestamp = timestamp
         
 
