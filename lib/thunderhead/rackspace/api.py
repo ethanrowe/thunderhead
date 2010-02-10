@@ -69,7 +69,7 @@ def getServers(conn, since=None):
     (data, code) = conn.request('GET', '/servers/detail')
     nodes = data.getElementsByTagName('server')
     result = ((nodes and [Server.fromXML(node) for node in nodes]) or [])
-    return result
+    return dict([(s.id, s) for s in result])
 
 def createServer(conn, server):
     (created, code) = conn.request('POST', '/servers', server.toXML())

@@ -182,7 +182,14 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         self.connection = None
 
     def testServersDetail(self):
-        one, two = thunderhead.rackspace.api.getServers(self.connection)
+        hash = thunderhead.rackspace.api.getServers(self.connection)
+        self.assertTrue(
+            hasattr(hash, 'has_key') and hasattr(hash, 'iteritems'),
+            'getServers result looks like a dictionary'
+        )
+        one = hash[1234]
+        two = hash[5678]
+        self.assertTrue(one and two, 'getServers result keyed by server id')
         self.assertEqual(one.id, 1234)
         self.assertEqual(one.name, 'sample-server')
         self.assertEqual(one.imageId, 2)
