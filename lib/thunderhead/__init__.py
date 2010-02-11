@@ -27,7 +27,7 @@ class Account(object):
         interface = getattr(provider.api, 'serverManagementInterface')
         if interface:
             for item in interface:
-                info = item if hasattr(item, 'has_key') else {'name': item}
+                info = (hasattr(item, 'has_key') and item) or {'name': item}
                 func = self._getProviderFunction(**info)
                 setattr(self, info['name'], self._wrapMethod(func))
         return self.provider
