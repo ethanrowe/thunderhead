@@ -272,3 +272,11 @@ class APIServer(StubServer):
    />
 </images>""",)
 
+class APIServerEmpty(APIServer):
+    def emptyResponse(self, request=None):
+        return ('',)
+
+    serversDetail = emptyResponse
+    flavorsDetail = emptyResponse
+    imagesDetail = emptyResponse
+

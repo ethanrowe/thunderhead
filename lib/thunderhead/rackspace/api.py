@@ -70,9 +70,13 @@ def queryString(since):
 
 def getServers(conn, since=None):
     (data, code) = conn.request('GET', '/servers/detail' + queryString(since))
-    nodes = data.getElementsByTagName('server')
-    result = ((nodes and [Server.fromXML(node) for node in nodes]) or [])
-    return dict([(s.id, s) for s in result])
+    if data:
+        nodes = data.getElementsByTagName('server')
+        result = ((nodes and [Server.fromXML(node) for node in nodes]) or [])
+        result = dict([(s.id, s) for s in result])
+    else:
+        result = {}
+    return result
 
 def createServer(conn, server):
     (created, code) = conn.request('POST', '/servers', server.toXML())
@@ -90,9 +94,10 @@ def attributeHash(node, attrs):
 
 def indexedChildHash(node, tag, attrs):
     result = {}
-    for child in node.getElementsByTagName(tag):
-        item = attributeHash(child, attrs)
-        result[item['id']] = item
+    if node:
+        for child in node.getElementsByTagName(tag):
+            item = attributeHash(child, attrs)
+            result[item['id']] = item
     return result
  
 def getFlavors(conn, since=None):

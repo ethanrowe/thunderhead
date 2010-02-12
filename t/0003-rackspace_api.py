@@ -348,5 +348,30 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         self.assertEqual(created.privateIPs, ['192.168.1.1'])
         self.assertEqual(created.publicIPs, ['10.10.1.1'])
 
+class TestEmptyResources(test_helper.TestCase):
+    def setUp(self):
+        self.server = test_helper.APIServerEmpty.test()
+        self.connection = thunderhead.rackspace.BoundConnection(
+            'http://localhost:' + str(self.server.port),
+            {'X-Auth-Token': 'SOME-AUTH-TOKEN'},
+        )
+
+    def tearDown(self):
+        self.server.finish()
+        self.server = None
+        self.connection = None
+
+    def testEmptyServers(self):
+        hash = thunderhead.rackspace.api.getServers(self.connection)
+        self.assertEqual(hash, {}, 'Empty server result yields empty hash')
+
+    def testEmptyFlavors(self):
+        hash = thunderhead.rackspace.api.getFlavors(self.connection)
+        self.assertEqual(hash, {}, 'Empty flavors result yields empty hash')
+
+    def testEmptyImages(self):
+        hash = thunderhead.rackspace.api.getImages(self.connection)
+        self.assertEqual(hash, {}, 'Empty images result yields empty hash')
+
 if __name__ == '__main__':
     test_helper.main()
