@@ -58,6 +58,7 @@ class CachedResource(BaseCachedResource):
 xmlns = 'http://docs.rackspacecloud.com/servers/api/v1.0'
 
 serverManagementInterface = [
+    {'name': 'Server', 'wrapper': None},
     'createServer',
     'deleteServer',
     {'name': 'getFlavors', 'wrapper': CachedResource},

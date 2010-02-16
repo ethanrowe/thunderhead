@@ -109,7 +109,7 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
     def testAPIServerManagementInterface(self):
         self.assertTrue(hasattr(thunderhead.rackspace.api, 'serverManagementInterface'))
         api = thunderhead.rackspace.api.serverManagementInterface[::]
-        api.sort(cmp=(lambda x, y: cmp((hasattr(x, 'keys') and x['name']) or x, (hasattr(y, 'keys') and y['name']) or y) ))
+        api.sort(cmp=(lambda x, y: cmp((hasattr(x, 'keys') and x['name'].lower()) or x.lower(), (hasattr(y, 'keys') and y['name'].lower()) or y.lower()) ))
         self.assertEqual(
             api,
             [
@@ -118,6 +118,7 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
                 {'name':'getFlavors', 'wrapper': thunderhead.rackspace.api.CachedResource},
                 {'name':'getImages', 'wrapper': thunderhead.rackspace.api.CachedResource},
                 {'name':'getServers', 'wrapper': thunderhead.rackspace.api.CachedResource},
+                {'name':'Server', 'wrapper': None},
             ],
             'serverManagementInterface provides appropriate functions and wrappers',
         )
