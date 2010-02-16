@@ -28,15 +28,18 @@ class Account(object):
         if interface:
             for item in interface:
                 info = (hasattr(item, 'has_key') and item) or {'name': item}
-                func = self._getProviderFunction(**info)
-                setattr(self, info['name'], self._wrapMethod(func))
+                setattr(self, info['name'], self._getProviderFunction(**info))
         return self.provider
 
     def _getProviderFunction(self, **kwargs):
+        wrap = True
         func = getattr(self.provider.api, kwargs['name'])
         if kwargs.has_key('wrapper'):
-            func = kwargs['wrapper'](func)
-        return func
+            if kwargs['wrapper']:
+                func = kwargs['wrapper'](func)
+            else:
+                wrap = False
+        return (wrap and self._wrapMethod(func)) or func
 
     def _wrapMethod(self, func):
         def wrappedFunc(*args, **kwargs):

@@ -28,11 +28,11 @@ class ProviderStub(object):
                 self.func = func
 
             def __call__(object, *args, **kwargs):
-                return object.func(*(args + ('wrapper',)), **kwargs)
+                return object.func(*(('wrapper',) + args), **kwargs)
 
         serverManagementInterface = [
             'funcA',
-            'funcB',
+            {'name': 'funcB', 'wrapper': None},
             {'name': 'funcC', 'wrapper': FuncCWrapper},
         ]
 
@@ -96,10 +96,46 @@ class TestAccountComposition(test_helper.TestCase):
         self.assertEqual(account.credentials, ('one', 'two'))
         self.assertEqual(account.namedCredentials, {'foo': 'fu', 'bar': 'bargh'})
 
-    def testServerManagementInterface(self):
+    def checkBasicInterface(self, func, *prefixed):
+        function = getattr(self.account, func, None)
+        self.assertTrue(function, 'Account gets method ' + func)
+        self.assertEqual(
+            function(),
+            (func, prefixed, {}),
+            #'Invocation of ' + func + ' with no args gives expected positional set',
+        )
+        posArgs = ('aard', 'vark', 'spamminator')
+        kwArgs = {'aard': 'Vark', 'vark': 'VARK!'}
+        self.assertEqual(
+            function(*posArgs),
+            (func, prefixed + posArgs, {}),
+            'Invocation of ' + func + ' with positional args includes expected set',
+        )
+        self.assertEqual(
+            function(**kwArgs),
+            (func, prefixed, kwArgs),
+            'Invocation of ' + func + ' with keywords only includes expected positional set and keywords',
+        )
+        self.assertEqual(
+            function(*posArgs, **kwArgs),
+            (func, prefixed + posArgs, kwArgs),
+            'Invocation of ' + func + ' with both pos and keyword args yields full expected set',
+        )
+
+    def testSimpleWrappedFunction(self):
+        self.checkBasicInterface('funcA', self.account.session.serverManager)
+
+    def testUnwrappedFunction(self):
+        self.checkBasicInterface('funcB')
+
+    def testWrappedFunction(self):
+        self.checkBasicInterface('funcC', 'wrapper', self.account.session.serverManager)
+
+    def xtestServerManagementInterface(self):
         # every method in provider's serverManagementInterface should be
         # wrapped on the account object, passing the account's session as the
         # first argument, and positional/named params passed along as well.
+        
         for item in ProviderStub.api.serverManagementInterface:
             if hasattr(item, 'has_key'):
                 func = item['name']
