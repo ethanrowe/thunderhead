@@ -84,7 +84,13 @@ def deleteSharedIPGroup(conn, group):
 
 def getSharedIPGroups(conn):
     (data, code) = conn.request('GET', '/shared_ip_groups')
-    return data
+    if data:
+        nodes = data.getElementsByTagName('sharedIpGroup')
+        result = ((nodes and [SharedIPGroup.fromXML(node) for node in nodes]) or [])
+        result = dict([(s.id, s) for s in result])
+    else:
+        result = {}
+    return result
 
 def createSharedIPGroup(conn, sharedipgroup):
     (data, code) = conn.request('POST', '/shared_ip_groups', sharedipgroup.toXML())
@@ -281,8 +287,21 @@ class SharedIP(APIObject):
 
 class SharedIPGroup(APIObject):
     simpleAttributes = ['name']
-    integerAttributes = ['server_id', 'group_id']
-    xmlAttributes = ['name']
+    integerAttributes = ['id']
+    xmlAttributes = ['name', 'id']
+
+    def __init__(self, *args, **kwargs):
+        self.initializeAttributes(*args, **kwargs)
+        servers = (kwargs.has_key('servers') and dict(zip(kwargs['servers'], [1] * len(kwargs['servers'])))) or {}
+        if kwargs.has_key('server_id'): servers[kwargs['server_id']] = 1
+        servers = servers.keys()
+        servers.sort()
+        self.servers = servers
+
+    def _XMLifyServer(self, id):
+        server = minidom.Element('server')
+        server.setAttribute('id', str(id))
+        return server
 
     def toXML(self):
         doc = minidom.Document()
@@ -291,8 +310,25 @@ class SharedIPGroup(APIObject):
         for attr in self.xmlAttributes:
             if hasattr(self, attr):
                 node.setAttribute(attr, str(getattr(self, attr)))
-        ipGroup = minidom.Element('server')
-        ipGroup.setAttribute('id', str(getattr(self, 'server_id')))
-        node.appendChild(ipGroup)
+        if len(self.servers) > 0:
+            if len(self.servers) == 1:
+                servers = self._XMLifyServer(self.servers[0])
+            else:
+                servers = minidom.Element('servers')
+                for id in self.servers:
+                    servers.appendChild(self._XMLifyServer(id))
+            node.appendChild(servers)
         return node
+
+    @classmethod
+    def fromXML(self, xml):
+        hash = dict([(str(attr.name), attr.value) for attr in xml.attributes.values()])
+        data = dict([(node.nodeName, node) for node in xml.childNodes])
+        servers = None
+        if data.has_key('server'):
+            servers = [int(data['server'].getAttribute('id'))]
+        elif data.has_key('servers'):
+            servers = [int(server.getAttribute('id')) for server in data['servers'].getElementsByTagName('server')]
+        if servers: hash['servers'] = servers
+        return self(**hash)
 

@@ -173,6 +173,29 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
             'file contents have proper path attribute and base64-encoded contents',
         )
 
+    def testSharedIPGroupClassToXML(self):
+        props = {
+            'id': 123,
+            'server_id': 99,
+            'name': 'Foo foo the snoo',
+        }
+        group = thunderhead.rackspace.api.SharedIPGroup(**props).toXML()
+        self.assertEqual(group.getAttribute('xmlns'), 'http://docs.rackspacecloud.com/servers/api/v1.0')
+        for attr in ['id', 'name']:
+            self.assertEqual(group.getAttribute(attr), str(props[attr]))
+        server, = group.getElementsByTagName('server')
+        self.assertEqual(server.getAttribute('id'), str(props['server_id']), 'SharedIPGroup XML uses single server node if only one server')
+        props['servers'] = [77, 88]
+        group = thunderhead.rackspace.api.SharedIPGroup(**props).toXML()
+        servers, = group.getElementsByTagName('servers')
+        servers = [int(server.getAttribute('id')) for server in servers.getElementsByTagName('server')]
+        servers.sort()
+        self.assertEqual(
+            servers,
+            [77, 88, 99],
+            'SharedIPGroup XML uses servers node if multiple servers present',
+        )
+
 
 class TestRackspaceAPIInteractions(test_helper.TestCase):
     def setUp(self):
@@ -388,20 +411,36 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
 
     def testListSharedIPGroup(self):
         ipList = thunderhead.rackspace.api.getSharedIPGroups(self.connection)
+        self.assertTrue(
+            hasattr(ipList, 'has_key'),
+            'getSharedIPGroups result set looks like a dictionary'
+        )
         request = self.server.getRequestData()
         self.assertEqual(request['method'], 'GET', 'createSharedIPGroup  issues a GET')
         self.assertEqual(request['path'], '/shared_ip_groups', 'createSharedIPGroup  path is /shared_ip_groups')
-        group1, group2 = ipList.getElementsByTagName('sharedIpGroup')
-        self.assertEqual(group1.getAttribute('id'), '1234')
-        server1, server2 = group1.getElementsByTagName('server')
-        self.assertEqual(server1.getAttribute('id'), '422')
-        self.assertEqual(server2.getAttribute('id'), '3445')
+        self.assertEqual(
+            len(ipList.keys()),
+            2,
+            #'getSharedIPGroups returns entries for two expected groups',
+        )
+        ids = ipList.keys()
+        ids.sort()
+        self.assertEqual(
+            ids,
+            [1234, 5678],
+            'getSharedIPGroups keys result set by shared IP group ID',
+        )
+        group1 = ipList[1234]
+        group2 = ipList[5678]
+        self.assertEqual(group1.id, 1234)
+        servers = group1.servers[::]
+        servers.sort()
+        self.assertEqual(servers, [422, 3445])
         
-        self.assertEqual(group2.getAttribute('id'), '5678')
-        server3, server4, server5 = group2.getElementsByTagName('server')
-        self.assertEqual(server3.getAttribute('id'), '23203')
-        self.assertEqual(server4.getAttribute('id'), '2456')
-        self.assertEqual(server5.getAttribute('id'), '9891')
+        self.assertEqual(group2.id, 5678)
+        servers = group2.servers[::]
+        servers.sort()
+        self.assertEqual(servers, [2456, 9891, 23203])
 
     def testDeleteSharedIPGroup(self):
         code = thunderhead.rackspace.api.deleteSharedIPGroup(self.connection, '1234')
