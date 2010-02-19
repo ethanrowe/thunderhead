@@ -131,41 +131,6 @@ class TestAccountComposition(test_helper.TestCase):
     def testWrappedFunction(self):
         self.checkBasicInterface('funcC', 'wrapper', self.account.session.serverManager)
 
-    def xtestServerManagementInterface(self):
-        # every method in provider's serverManagementInterface should be
-        # wrapped on the account object, passing the account's session as the
-        # first argument, and positional/named params passed along as well.
-        
-        for item in ProviderStub.api.serverManagementInterface:
-            if hasattr(item, 'has_key'):
-                func = item['name']
-                wrappedArg = ('wrapper',)
-            else:
-                func = item
-                wrappedArg = ()
-            self.assertTrue(hasattr(self.account, func), 'Account gets method ' + func)
-            self.assertEqual(
-                getattr(self.account, func)(),
-                (func, (self.account.session.serverManager,) + wrappedArg, {}),
-                func + ' empty invocation passes through account session attr only',
-            )
-            self.assertEqual(
-                getattr(self.account, func)('aard', 'vark', 'spamminator'),
-                (func, (self.account.session.serverManager, 'aard', 'vark', 'spamminator') + wrappedArg, {}),
-                func + ' invocation with positional params only'
-            )
-            self.assertEqual(
-                getattr(self.account, func)(aard='vark', spam='minator'),
-                (func, (self.account.session.serverManager,) + wrappedArg, {'aard': 'vark', 'spam': 'minator'}),
-                func + ' invocation with named params only',
-            )
-            self.assertEqual(
-                getattr(self.account, func)('aard', 'vark', aard='vark'),
-                (func, (self.account.session.serverManager, 'aard', 'vark') + wrappedArg, {'aard': 'vark'}),
-                func + ' invocation with both param types',
-            )
-
-
 if __name__ == '__main__':
     test_helper.main()
 
