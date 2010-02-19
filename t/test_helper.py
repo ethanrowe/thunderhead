@@ -144,7 +144,7 @@ class APIServer(StubServer):
             ('servers/(\d+)', 'serverDetail'),
             ('flavors/detail(?:\?changes-since=.+)?', 'flavorsDetail'),
             ('images/detail(?:\?changes-since=.+)?', 'imagesDetail'),
-            ('shared_ip_groups', 'sharedIPsList'),
+            ('shared_ip_groups(?:\?changes-since=.+)?', 'sharedIPsList'),
         ]),
         'post': transformHandler([
             ('servers', 'serverCreate'),
@@ -354,4 +354,5 @@ class APIServerEmpty(APIServer):
     serversDetail = emptyResponse
     flavorsDetail = emptyResponse
     imagesDetail = emptyResponse
+    sharedIPsList = emptyResponse
 

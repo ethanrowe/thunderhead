@@ -121,7 +121,7 @@ class TestRackspaceAPIObjects(test_helper.TestCase):
                 {'name':'getImages', 'wrapper': thunderhead.rackspace.api.CachedResource},
                 'getPublicIPs',
                 {'name':'getServers', 'wrapper': thunderhead.rackspace.api.CachedResource},
-                'getSharedIPGroups',
+                {'name':'getSharedIPGroups', 'wrapper': thunderhead.rackspace.api.CachedResource},
                 {'name':'Server', 'wrapper': None},
                 'shareIP',
             ],
@@ -254,6 +254,11 @@ class TestRackspaceAPIInteractions(test_helper.TestCase):
         request = self.server.getRequestData()
         self.assertEqual(request['path'], '/images/detail?changes-since=foo')
         
+    def testSharedIPGroupsSince(self):
+        result = thunderhead.rackspace.api.getSharedIPGroups(self.connection, since='foo')
+        request = self.server.getRequestData()
+        self.assertEqual(request['path'], '/shared_ip_groups?changes-since=foo')
+
     def testServerDeleteById(self):
         result = thunderhead.rackspace.api.deleteServer(self.connection, 1234)
         request = self.server.getRequestData()
@@ -471,6 +476,10 @@ class TestEmptyResources(test_helper.TestCase):
     def testEmptyImages(self):
         hash = thunderhead.rackspace.api.getImages(self.connection)
         self.assertEqual(hash, {}, 'Empty images result yields empty hash')
+
+    def testEmptySharedIPGroups(self):
+        hash = thunderhead.rackspace.api.getSharedIPGroups(self.connection)
+        self.assertEqual(hash, {}, 'Empty shared IP groups result yields empty hash')
 
 if __name__ == '__main__':
     test_helper.main()

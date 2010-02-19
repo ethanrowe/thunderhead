@@ -67,7 +67,7 @@ serverManagementInterface = [
     {'name': 'getImages', 'wrapper': CachedResource},
     'getPublicIPs',
     {'name': 'getServers', 'wrapper': CachedResource},
-    'getSharedIPGroups',
+    {'name': 'getSharedIPGroups', 'wrapper': CachedResource},
     'shareIP',
 ]
 
@@ -82,8 +82,8 @@ def deleteSharedIPGroup(conn, group):
     (body, code) = conn.request('DELETE', '/shared_ip_groups/' + group)
     return code
 
-def getSharedIPGroups(conn):
-    (data, code) = conn.request('GET', '/shared_ip_groups')
+def getSharedIPGroups(conn, since=None):
+    (data, code) = conn.request('GET', '/shared_ip_groups' + queryString(since))
     if data:
         nodes = data.getElementsByTagName('sharedIpGroup')
         result = ((nodes and [SharedIPGroup.fromXML(node) for node in nodes]) or [])
